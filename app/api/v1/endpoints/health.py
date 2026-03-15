@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from datetime import datetime
 
-router = APIRouter()
+router = APIRouter(prefix="simulation", tags=["simulation"])
 
 @router.get("/health")
 def health():
