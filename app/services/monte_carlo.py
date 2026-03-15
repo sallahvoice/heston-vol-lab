@@ -41,7 +41,6 @@ def monte_carlo_european_call(
     ) -> float:
 
     ST = St[-1]
-    n_paths = ST.shape[0]
 
     payoff = np.maximum(ST - K, 0)
     discounted_payoff = discount_payoff(payoff, r, T)
@@ -59,7 +58,6 @@ def monte_carlo_european_put(
     ) -> float:
    
     ST = St[-1]
-    n_paths = ST.shape[0]
 
     payoff = np.maximum(K - ST, 0)
     discounted_payoff = discount_payoff(payoff, r, T)
@@ -90,7 +88,7 @@ def monte_carlo_convergence_test(
 
         ST = paths[-1]
         discounted_payoffs = discount_payoff(np.maximum(ST - K, 0), r, T)
-        se = monte_carlo_standard_error(discounted_payoffs, N)
+        se = monte_carlo_standard_error(discounted_payoffs)
 
         abs_error = abs(mc_price - bs_price)
 
@@ -103,7 +101,7 @@ def monte_carlo_convergence_test(
             "mc_price": mc_price,
             "standard_error": se,
             "abs_error": abs_error,
-            "theoretical_error": 1 / np.sqrt(N),
+            "theoretical_error": 1 / np.sqrt(N), #relative convergence rate proxy, not the actual theoretical bound
             "within_95_ci": within_95_ci,
             "within_99_ci": within_99_ci
         })

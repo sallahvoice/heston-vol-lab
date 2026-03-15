@@ -18,7 +18,7 @@ def simulate_gbm_paths(
     grid = TimeGrid.generate_time_grid(n_steps=n_steps, T=T)
     t = grid.time_grid[:, None]
 
-    W = simulate_brownian_motion(n_steps, T, n_paths, seed)[0]
+    W, _ = simulate_brownian_motion(n_steps, n_paths, T, seed)
 
     St = S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * W)
 
@@ -31,7 +31,8 @@ def simulate_gbm_antihetic(
     sigma: float,
     T: float,
     n_steps: int,
-    n_paths: int
+    n_paths: int,
+    seed: int | None = None
 ) -> np.ndarray:
 
     half_n = n_paths // 2
@@ -39,7 +40,7 @@ def simulate_gbm_antihetic(
     grid = TimeGrid.generate_time_grid(n_steps=n_steps, T=T)
     t = grid.time_grid[:, None]
 
-    W, _ = simulate_brownian_motion(n_steps, half_n, T)
+    W, _ = simulate_brownian_motion(n_steps, half_n, T, seed)
 
     W_antihetic = -W
     W_combined = np.concatenate([W, W_antihetic], axis=1)
@@ -96,6 +97,7 @@ def black_scholes_call(
 
 def gbm_mc_delta(
     S0: float,
+    mu: float,
     K: float,
     sigma: float,
     r: float,
