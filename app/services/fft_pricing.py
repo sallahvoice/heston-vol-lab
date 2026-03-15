@@ -95,7 +95,11 @@ def carr_madan_fft_price(
 ) -> tuple[np.ndarray, np.ndarray]:
 
     u = build_fft_grid(N, B)
-    du = u[1] - u[0]
+    eta = u[1] - u[0]
+
+    lamda = 2 * np.pi / (N * eta)
+    b = N * lamda / 2
+    k = -b + np.arange(N) * lamda
 
     integrand = carr_madan_integrand(
         u,
@@ -110,13 +114,7 @@ def carr_madan_fft_price(
         3 + (-1)**np.arange(N) - (np.arange(N)==0)
         ) / 3
 
-    stablized_integrand = integrand * simpson_weight
-
-    fft_values = np.fft.fft(stablized_integrand) * eta
-
-    lamda = 2 * np.pi / (N * eta)
-    b = N * lamda / 2
-    k = -b + np.arange(N) * lamda
+    fft_values = np.fft.fft(integrand * simpson_weight) * eta
 
     C_k = (np.exp(-alpha * k) / np.pi) * np.real(fft_values)
 

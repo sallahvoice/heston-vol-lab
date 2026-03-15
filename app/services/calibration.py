@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
-from app.services.heston import HestonParams
-from app.services.fft_pricing import carr_madan_fft_price
+from app.services.fft_pricing import (HestonParams, carr_madan_fft_price)
 from app.services.heston import check_feller_condition
 
 
@@ -22,7 +21,7 @@ def heston_objective(
     ))
 
     err = np.sum((market_prices - model_prices)**2) / len(market_prices)
-    feller_condition =  check_feller_condition(theta=params.theta, kappa=params.kappa)
+    feller_condition =  check_feller_condition(theta=params.theta, kappa=params.kappa, xi=params.xi)
     if not feller_condition:
         err += 1e6
 
@@ -60,7 +59,7 @@ def calibrate_heston_objective(
     result = minimize(
         objective_wrapper,
         x0,
-        method=method, options=options,
+        method=method, 
         bounds=bounds,
         tol = tol,
         options=options
