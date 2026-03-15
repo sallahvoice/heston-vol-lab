@@ -57,7 +57,6 @@ def heston_characteristic_function(
 
 def carr_madan_integrand(
     u: np.ndarray,
-    k: float,
     params: HestonParams,
     T: float,
     S0: float,
@@ -103,18 +102,21 @@ def carr_madan_fft_price(
 
     integrand = carr_madan_integrand(
         u,
-        k,
         params,
         T,
         S0,
         alpha
     )
 
+    n = np.arange(N)
     simpson_weight = (
-        3 + (-1)**np.arange(N) - (np.arange(N)==0)
+        3 + (-1)**n - (n == 0)
         ) / 3
 
-    fft_values = np.fft.fft(integrand * simpson_weight) * eta
+    shift = np.exp(1j * u * b)
+
+    fft_input = integrand * simpson_weight * shift
+    fft_values = np.fft.fft(fft_input) * eta
 
     C_k = (np.exp(-alpha * k) / np.pi) * np.real(fft_values)
 
