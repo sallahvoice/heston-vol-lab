@@ -1,5 +1,5 @@
 class ModelConvergenceError(Exception):
-    def __init__(message: str, value: str) -> None:
+    def __init__(self, message: str, value: str) -> None:
         super().__init__(message)
         self.message = message
         self.value = value
@@ -9,7 +9,7 @@ class ModelConvergenceError(Exception):
 
 
 class InvalidParameterError(Exception):
-    def __init__(message: str, value: str) -> None:
+    def __init__(self, message: str, value: str) -> None:
         super().__init__(message)
         self.message = message
         self.value = value
@@ -19,7 +19,7 @@ class InvalidParameterError(Exception):
 
 
 class FellerConditionViolation(Exception):
-    def __init__(message: str, value: str) -> None:
+    def __init__(self, message: str, value: str) -> None:
         super().__init__(message)
         self.message = message
         self.value = value
