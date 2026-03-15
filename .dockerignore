@@ -1,0 +1,11 @@
+.venv
+.env
+.env*
+!.env.example
+.git
+.gitignore
+__pycache__
+*.pyc
+tests/
+frontend/node_modules
+.vscode
