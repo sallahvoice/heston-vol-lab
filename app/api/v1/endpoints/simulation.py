@@ -8,7 +8,9 @@ router = APIRouter(prefix="simulation", tags=["simulation"])
 
 
 @router.post("/monte_carlo")
-def simulate_monte_carlo():
+def simulate_monte_carlo(): #pass correct params
+    #call correct function
+    #make sure to return summary (to many paths)
     pass
 
 
