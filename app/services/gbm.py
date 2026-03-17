@@ -2,7 +2,6 @@ import numpy as np
 from scipy.stats import norm
 import pandas as pd
 from app.services.brownian import simulate_brownian_motion
-from app.services.monte_carlo import (monte_carlo_european_call_with_error, )
 from app.utils.math_utils import TimeGrid
 
 def simulate_gbm_paths(
@@ -106,6 +105,8 @@ def gbm_mc_delta(
     n_paths: int,
     eps: float = 0.01
 ) -> float:
+
+    from app.services.gbm import monte_carlo_european_call_with_error
 
     paths_up = simulate_gbm_paths(S0 + eps, mu, sigma, T, n_steps, n_paths)
     price_up = monte_carlo_european_call_with_error(paths_up, K, r, T)[0]
