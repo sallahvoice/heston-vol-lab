@@ -28,8 +28,8 @@ class CorrelatedBrownianResponse(BaseModel):
 
 
 class GBMRequest(BaseModel):
-    S0: float
-    mu: float
+    S0: float = Field(..., gt=0)
+    mu: float = Field(...)
     sigma : float = Field(..., ge=0)
     T: float = Field(..., gt=0)
     n_steps: int = Field(..., gt=1)
@@ -41,8 +41,8 @@ class GMBResponse(BaseModel):
 
 
 class HestonRequest(BaseModel):
-    S0: float
-    v0: float
+    S0: float = Field(..., gt=0)
+    v0: float = Field(..., gt=0)
     rho: float = Field(..., ge=-1.0, le=1.0)
     n_steps: int = Field(..., gt=1)
     n_paths: int = Field(..., gt=0)
