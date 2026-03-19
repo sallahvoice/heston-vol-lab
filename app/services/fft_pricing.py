@@ -72,7 +72,7 @@ def carr_madan_integrand(
         S0
     )
 
-    numerator = np.exp(-i * u * k) * phi
+    numerator = phi
 
     denominator = (
         alpha**2
