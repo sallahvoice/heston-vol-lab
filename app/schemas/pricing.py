@@ -21,10 +21,10 @@ class HestonParams(BaseModel):
 
 class CarrMadanRequest(BaseModel):
     params: HestonParams
-    T: float = Field(..., gt=0),
-    S0: float = Field(..., gt=0),
-    alpha: float= Field(default=1.5),
-    N: int = Field(default=4096),
+    T: float = Field(..., gt=0)
+    S0: float = Field(..., gt=0)
+    alpha: float= Field(default=1.5)
+    N: int = Field(default=4096)
     B: float= Field(default=1000)
 
 class CarrMadanResponse(BaseModel):
