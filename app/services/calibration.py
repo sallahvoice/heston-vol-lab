@@ -73,7 +73,7 @@ def calibration_error_summary(
     calibrated_params: HestonParams,
     K: np.ndarray,
     T: np.ndarray,
-    S0,
+    S0: float,
     market_prices: np.ndarray,
     alpha: float = 1.5,
     N: int = 2**12,
@@ -93,4 +93,59 @@ def calibration_error_summary(
         "model_prices": model_prices,
         "abs_errors": abs_errors,
         "rmse": rmse
+    }
+
+
+def calibrate_heston(
+    initial_guess: HestonParams,
+    K: np.ndarray,
+    T: np.ndarray,
+    S0: float,
+    market_prices: np.ndarray,
+    K: np.ndarray,
+    T: np.ndarray,
+    market_prices: np.ndarray,
+    alpha: float = 1.5,
+    N: int = 2**12,
+    B: float = 1000,
+    method: str = "L-BFGS-B",
+    tol: float = 1e-6,
+    alpha: float = 1.5,
+    N: int = 2**12,
+    B: float = 1000,
+    bounds=None,
+    options: dict = None,
+) -> dict:
+
+    params, loss = calibrate_heston_objective(
+        initial_guess,
+        K,
+        T,
+        S0,
+        market_prices,
+        alpha,
+        N,
+        B,
+        bounds,
+        method,
+        tol,
+        options) 
+    
+    summary = calibration_error_summary(
+        initial_guess,
+        K,
+        T,
+        S0,
+        market_prices,
+        alpha,
+        N,
+        B
+    )
+
+    return {
+        "params": params,
+        "market_prices": summary["market_prices"],
+        "model_prices": summary["model_prices"],
+        "abs_errors": summary["abs_errors"],
+        "rmse": summary["rmse"],
     }
