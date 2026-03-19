@@ -32,7 +32,7 @@ def simulate_brownian(req: BrownianRequest) -> BrownianResponse:
 
 @router.post("/correlated_brownian", response_model=CorrelatedBrownianResponse)
 def simulate_corr_brownian(req: CorrelatedBrownianRequest) -> CorrelatedBrownianResponse:
-    W1, W2, dW1, dW2 = simulate_correlated_brownian_motion(req.rho, req.n_steps, req.n_paths, req.T, req.sseed)
+    W1, W2, dW1, dW2 = simulate_correlated_brownian_motion(req.rho, req.n_steps, req.n_paths, req.T, req.seed)
     return {
         "W1": _as_list(W1),
         "W2": _as_list(W2),
