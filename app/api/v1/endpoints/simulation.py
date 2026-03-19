@@ -1,5 +1,6 @@
-from typing import Any
 from fastapi import APIRouter
+
+from app.utils.misc import _as_list
 
 from app.schemas.simulation import (
     BrownianRequest, BrownianResponse,
@@ -21,14 +22,6 @@ from app.services.heston import simulate_heston_paths
 
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
-
-
-def _as_list(payload: Any) -> Any:
-    if isinstance(payload, tuple):
-        return [_as_list(item) for item in payload]
-    if hasattr(payload, "tolist"):
-        return payload.tolist()
-    return payload
 
 
 @router.post("/brownian", response_model=BrownianResponse)
