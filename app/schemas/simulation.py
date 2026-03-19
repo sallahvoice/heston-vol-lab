@@ -6,7 +6,7 @@ class BrownianRequest(BaseModel):
     n_steps: int = Field(..., gt=1),
     n_paths: int = Field(..., gt=0),
     T: float = Field(..., gt=0),
-    seed: Optional[int] = None
+    seed: int | None = None
 
 class BrownianResponse(BaseModel):
     W : list[list[float]]
@@ -18,7 +18,7 @@ class CorrelatedBrownianRequest(BaseModel):
     n_steps: int = Field(..., gt=1)
     n_paths: int = Field(..., gt=0)
     T: float = Field(..., gt=0)
-    seed: Optional[int] = None
+    seed: int | None = None
 
 class CorrelatedBrownianResponse(BaseModel):
     W1: list[list[float]]
@@ -34,9 +34,9 @@ class GBMRequest(BaseModel):
     T: float = Field(..., gt=0)
     n_steps: int = Field(..., gt=1)
     n_paths: int = Field(..., gt=0)
-    seed: Optional[int] = None
+    seed: int | None = None
 
-class GMBResponse(BaseModel):
+class GBMResponse(BaseModel):
     paths : list[list[float]]
 
 
@@ -50,7 +50,7 @@ class HestonRequest(BaseModel):
     theta: float = Field(..., ge=0)
     kappa: float = Field(..., ge=0)
     xi: float = Field(..., ge=0)
-    seed: Optional[int] = None
+    seed: int | None = None
 
 class HestonResponse(BaseModel):
     St: list[list[float]]
