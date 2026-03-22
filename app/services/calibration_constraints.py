@@ -16,7 +16,7 @@ def to_response_payload(params, summary: dict, diagnostics: dict | None = None) 
         rmse: summary["rmse"]
     }
 
-    if not diagnostics:
+    if diagnostics:
         payload["diagnostics"] = diagnostics
     
     return payload
