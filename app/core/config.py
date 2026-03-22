@@ -7,7 +7,7 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-    db_url : str = Field(alias="DB-URL")
+    db_url : str = Field(alias="DB_URL")
     db_host: str = Field(alias="DB_HOST")
     db_port: str = Field(alias="DB_PORT")
     db_name: str = Field(alias="DB_NAME")
