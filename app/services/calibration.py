@@ -1,10 +1,11 @@
 import numpy as np
 from scipy.optimize import minimize
+
 from app.services.fft_pricing import HestonParams, carr_madan_fft_price
 from app.services.heston import check_feller_condition
 
-
 FELLER_PENALTY = 1e6
+
 
 def _validate_and_broadcast_inputs(
     K: np.ndarray | list[float] | float,
@@ -18,8 +19,8 @@ def _validate_and_broadcast_inputs(
 
     if np.any(strikes <= 0):
         raise ValueError("All strikes K must be positive.")
-    if np.any(maturities <=0):
-        raise ValueError("All matururities T must be positive.")
+    if np.any(maturities <= 0):
+        raise ValueError("All maturities T must be positive.")
     
     n = market.shape[0]
 
@@ -31,7 +32,7 @@ def _validate_and_broadcast_inputs(
     if not (strikes.size == maturities.size == n):
         raise ValueError(
             "K, T, and market_prices must have compatible lengths"
-            "(or K/T can be scalars)"
+            "(or K/T can be scalars)."
         )
     
     return strikes, maturities, market
@@ -58,12 +59,13 @@ def _model_prices_for_quotes(
             S0=S0,
             alpha=alpha,
             N=N,
-            B=B
+            B=B,
         )
         strike_grid = np.exp(k_grid)
         model_prices[idx] = np.interp(K[idx], strike_grid, c_grid)
     
     return model_prices
+
 
 def heston_objective(
     params: HestonParams,
@@ -78,7 +80,7 @@ def heston_objective(
 
     model_prices = _model_prices_for_quotes(params, K, T, S0, alpha, N, B)
 
-    err = float(np.mean((market_prices - model_prices) **2))
+    err = float(np.mean((market_prices - model_prices) ** 2))
 
     if not check_feller_condition(theta=params.theta, kappa=params.kappa, xi=params.xi):
         err += FELLER_PENALTY
@@ -103,7 +105,7 @@ def calibrate_heston_objective(
 
     k_arr, T_arr, market_arr = _validate_and_broadcast_inputs(K, T, market_prices)
 
-    def objective_wrapper(x: np.ndarray) -> flaot:
+    def objective_wrapper(x: np.ndarray) -> float:
         p = HestonParams(*x)
         return heston_objective(
             p,
@@ -113,7 +115,7 @@ def calibrate_heston_objective(
             alpha,
             N,
             B,
-            market_arr
+            market_arr,
         )
     
     x0 = np.array(
@@ -123,10 +125,10 @@ def calibrate_heston_objective(
             initial_guess.kappa,
             initial_guess.theta,
             initial_guess.rho,
-            initial_guess.xi
+            initial_guess.xi,
         ],
         dtype=float,
-        )
+    )
 
     result = minimize(
         objective_wrapper,
@@ -161,7 +163,7 @@ def calibration_error_summary(
         S0,
         alpha,
         N,
-        B
+        B,
     )
 
     abs_errors = np.abs(model_prices - market_arr)
