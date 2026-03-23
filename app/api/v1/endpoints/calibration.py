@@ -29,6 +29,6 @@ def heston_calibration(req: HestonCalibrationRequest) -> HestonCalibrationRespon
         "params": result["params"],
         "market_prices": _as_list(result["market_prices"]),
         "model_prices": _as_list(result["model_prices"]),
-        "abs_errors": _as_list(result["abs_errrors"]),
+        "abs_errors": _as_list(result["abs_errors"]),
         "rmse": result["rmse"]
     }
