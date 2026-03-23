@@ -1,6 +1,11 @@
+import redis
 from fastapi import APIRouter, Request
 
+from app.core.logger import get_logger
+from app.utils.redis_client import redis_client
+
 router = APIRouter(prefix="/redis", tags=["redis"])
+logger = get_logger(__name__)
 
 
 @router.post("/cache/expire")
