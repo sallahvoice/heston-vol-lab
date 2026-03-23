@@ -1,11 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class BrownianRequest(BaseModel):
-    n_steps: int = Field(..., gt=1),
-    n_paths: int = Field(..., gt=0),
-    T: float = Field(..., gt=0),
+    n_steps: int = Field(..., gt=1)
+    n_paths: int = Field(..., gt=0)
+    T: float = Field(..., gt=0)
     seed: int | None = None
 
 class BrownianResponse(BaseModel):
