@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field
-
+from typing import List, Optional
 
 class MonteCarloRequest(BaseModel):
-    St: list[list[float]]
+    St: List[List[float]]
     K: float = Field(..., gt=0)
     r: float = Field(...)
     T: float = Field(..., gt=0)
@@ -19,6 +19,20 @@ class HestonParams(BaseModel):
     rho: float = Field(..., ge=-1.0, le=1.0)
     xi: float = Field(..., ge=0)
 
+
+class Diagnostics(BaseModel):
+    calibration_logs: dict
+
+
+class PricingResponse(BaseModel):
+    params: HestonParams
+    market_prices: List[float]
+    model_prices: List[float]
+    abs_errors: List[float]
+    rmse: float
+    diagnostics: Optional[Diagnostics] = None
+
+
 class CarrMadanRequest(BaseModel):
     params: HestonParams
     T: float = Field(..., gt=0)
@@ -28,5 +42,5 @@ class CarrMadanRequest(BaseModel):
     B: float= Field(default=1000)
 
 class CarrMadanResponse(BaseModel):
-    k : list[float]
-    C_k : list[float]
+    k : List[float]
+    C_k : List[float]
