@@ -54,7 +54,7 @@ def _model_prices_for_quotes(
     for t in unique_T:
         idx = T == t
         k_grid, c_grid = carr_madan_fft_price(
-            params=prams,
+            params=params,
             T=float(t),
             S0=S0,
             alpha=alpha,
@@ -109,7 +109,7 @@ def calibrate_heston_objective(
         p = HestonParams(*x)
         return heston_objective(
             p,
-            K_arr,
+            k_arr,
             T_arr,
             S0,
             alpha,

@@ -5,7 +5,7 @@ from app.utils.misc import _as_list
 from app.schemas.simulation import (
     BrownianRequest, BrownianResponse,
     CorrelatedBrownianRequest, CorrelatedBrownianResponse,
-    GBMRequest, GMBResponse,
+    GBMRequest, GBMResponse,
     HestonRequest, HestonResponse
 )
 
@@ -41,20 +41,20 @@ def simulate_corr_brownian(req: CorrelatedBrownianRequest) -> CorrelatedBrownian
     }
 
 
-@router.post("/gbm_price", response_model=GMBResponse)
-def simulate_gbm_price_paths(req: GBMRequest) -> GMBResponse:
+@router.post("/gbm_price", response_model=GBMResponse)
+def simulate_gbm_price_paths(req: GBMRequest) -> GBMResponse:
     paths = simulate_gbm_paths(req.S0, req.mu, req.sigma, req.T, req.n_steps, req.n_paths, req.seed)
     return {"paths": _as_list(paths)}
 
 
-@router.post("/antihetic_gbm_price", response_model=GMBResponse)
-def simulate_antihetic_gbm_price_paths(req: GBMRequest) -> GMBResponse:
+@router.post("/antihetic_gbm_price", response_model=GBMResponse)
+def simulate_antihetic_gbm_price_paths(req: GBMRequest) -> GBMResponse:
     paths = simulate_gbm_antihetic(req.S0, req.mu, req.sigma, req.T, req.n_steps, req.n_paths, req.seed)
     return {"paths": _as_list(paths)}
 
 
-@router.post("/gbm_euler_price", response_model=GMBResponse)
-def simulate_euler_gbm_price_paths(req: GBMRequest) -> GMBResponse:
+@router.post("/gbm_euler_price", response_model=GBMResponse)
+def simulate_euler_gbm_price_paths(req: GBMRequest) -> GBMResponse:
     paths = simulate_gbm_euler(req.S0, req.mu, req.sigma, req.T, req.n_steps, req.n_paths, req.seed)
     return {"paths": _as_list(paths)}
 
