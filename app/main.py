@@ -24,7 +24,7 @@ app = FastAPI(
 app.include_router(api_router, prefix="/api/v1")
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(Request: Request, exp: Exception) -> JSONResponse:
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("unhandled error at %s: %s", request.url.path, exc)
     return JSONResponse(
         status_code=500,
