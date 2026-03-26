@@ -30,6 +30,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         status_code=500,
         content={
             "detail": "Internal Server Error",
+            "request_path": request.url.path,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     )

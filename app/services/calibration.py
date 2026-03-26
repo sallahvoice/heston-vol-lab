@@ -140,7 +140,7 @@ def calibrate_heston_objective(
         )
 
     calibrated_params = HestonParams(*result.x)
-    return calibrated_params, float(result.fun)
+    return calibrated_params, float(result.fun), result.sucess, result.message
 
 
 def calibration_error_summary(

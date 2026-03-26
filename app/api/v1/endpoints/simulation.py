@@ -23,7 +23,7 @@ from app.services.heston import simulate_heston_paths
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
-
+#summary="...."?
 @router.post("/brownian", response_model=BrownianResponse)
 def simulate_brownian(req: BrownianRequest) -> BrownianResponse:
     W, dW = simulate_brownian_motion(req.n_steps, req.n_paths, req.T, req.seed)
