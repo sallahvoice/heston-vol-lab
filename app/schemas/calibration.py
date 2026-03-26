@@ -35,3 +35,16 @@ class HestonCalibrationResponse(BaseModel):
     model_prices: list[float]
     abs_errors: list[float]
     rmse: float
+
+
+class CalibrationRunResponse(BaseModel):
+    id: int
+    method: str
+    inputs: dict
+    params: dict
+    rmse: float
+    created_at: str
+
+
+class CalibrationRunListResponse(BaseModel):
+    runs: List[CalibrationRunResponse]
