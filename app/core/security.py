@@ -11,12 +11,15 @@ def validate_api_key(x_api_key: str | None = Header(default=None)) -> str:
 
     expected_api_key = os.getenv("API_KEY")
     if not expected_api_key:
-        return "ok"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Missing {API_KEY_HEADER}  header"
+        )
 
-        if x_api_key !=expected_api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"invalid or missing {API_KEY_HEADER} header",
-            )
+    if x_api_key !=expected_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"invalid {API_KEY_HEADER} header",
+        )
 
-        return "ok"
+    return "ok"

@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.pricing import HestonParams
@@ -5,16 +6,16 @@ from app.schemas.pricing import HestonParams
 
 class HestonCalibrationRequest(BaseModel):
     initial_guess: HestonParams
-    K: list[float] = Field(..., min_length=1)
-    T: list[float] = Field(..., min_length=1)
+    K: List[float] = Field(..., min_length=1)
+    T: List[float] = Field(..., min_length=1)
     S0: float = Field(..., gt=0)
-    market_prices: list[float] = Field(..., min_length=1)
+    market_prices: List[float] = Field(..., min_length=1)
     method: str = Field(default="L-BFGS-B")
     tol: float = Field(default=1e-6)
     alpha: float = Field(default=1.5)
     N: int = Field(default=4096, gt=0)
     B: float = Field(default=1000, gt=0)
-    bounds: list[tuple[float | None, float | None]] | None = None
+    bounds: List[tuple[float | None, float | None]] | None = None
     options: dict | None = None
 
 
@@ -31,9 +32,9 @@ class HestonCalibrationRequest(BaseModel):
 
 class HestonCalibrationResponse(BaseModel):
     params: HestonParams
-    market_prices: list[float]
-    model_prices: list[float]
-    abs_errors: list[float]
+    market_prices: List[float]
+    model_prices: List[float]
+    abs_errors: List[float]
     rmse: float
 
 
