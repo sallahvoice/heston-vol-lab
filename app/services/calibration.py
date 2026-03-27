@@ -101,7 +101,7 @@ def calibrate_heston_objective(
     method: str = "L-BFGS-B",
     tol: float = 1e-6,
     options: dict | None = None,
-) -> tuple[HestonParams, float]:
+) -> tuple[HestonParams, float, bool, str]:
 
     k_arr, T_arr, market_arr = _validate_and_broadcast_inputs(K, T, market_prices)
 
@@ -140,7 +140,7 @@ def calibrate_heston_objective(
         )
 
     calibrated_params = HestonParams(*result.x)
-    return calibrated_params, float(result.fun), result.sucess, result.message
+    return calibrated_params, float(result.fun), bool(result.sucess), str(result.message)
 
 
 def calibration_error_summary(
@@ -192,7 +192,7 @@ def calibrate_heston(
     options: dict | None = None,
 ) -> dict:
 
-    params, _loss = calibrate_heston_objective(
+    params, _loss, _success, _message = calibrate_heston_objective(
         initial_guess=initial_guess,
         K=K,
         T=T,
