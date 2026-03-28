@@ -40,5 +40,3 @@ class CalibrationRepository:
         self.db.delete(run)
         self.db.commit()
         return True
-
-    #pagination cursor/offset, update metadata
