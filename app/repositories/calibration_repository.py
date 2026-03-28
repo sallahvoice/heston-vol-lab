@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.calibration import CalibrationRun
 
+
 class CalibrationRepository:
     def __init__(self, db_session: Session):
         self.db = db_session
@@ -21,7 +22,23 @@ class CalibrationRepository:
         return self.db.query(CalibrationRun).filter(CalibrationRun.id == run_id).first()
 
 
-    def list_recent_runs(self, limit: int) -> Sequence[CalibrationRun]:
-        return self.db.query(CalibrationRun).order_by(desc(CalibrationRun.created_at)).limit(limit).all()
+    def list_recent_runs(self, limit: int, offset: int) -> Sequence[CalibrationRun]:
+        return (
+            self.db.query(CalibrationRun)
+            .order_by(desc(CalibrationRun.created_at))
+            .offset(offset)
+            .limit(limit).all()
+        )
 
-    #potential calibration CRUD queries
+    def count_runs(self) -> int:
+        return int(self.db.query(CalibrationRun).count())
+
+    def delete_run(self, run_id: int) -> bool:
+        run = self.get_run_by_id(run_id)
+        if run is None:
+            return False
+        self.db.delete(run)
+        self.db.commit()
+        return True
+
+    #pagination cursor/offset, update metadata
