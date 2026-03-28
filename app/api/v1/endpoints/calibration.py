@@ -1,18 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
 from app.models.calibration import CalibrationRun
 from app.repositories.calibration_repository import CalibrationRepository
+from app.services.calibration import calibrate_heston
 from app.utils.misc import _as_list
 
-from app.services.calibration import calibrate_heston
 from app.schemas.calibration import (
     CalibrationRunListResponse,
     CalibrationRunResponse,
     HestonCalibrationRequest,
-    HestonCalibrationResponse
+    HestonCalibrationResponse,
 )
+
+from app.schemas.common import PaginationMeta
 
 router = APIRouter(prefix="/calibration", tags=["calibration"])
 
@@ -35,7 +37,7 @@ def heston_calibration(
         method=req.method,
         tol=req.tol,
         bounds=req.bounds,
-        options=req.options
+        options=req.options,
     )
 
     if save_run:
@@ -53,7 +55,7 @@ def heston_calibration(
                 "B": req.B,
                 "bounds": req.bounds,
                 "options": req.options,
-                "tol": req.tol
+                "tol": req.tol,
             },
             params=result["params"],
             rmse=result["rmse"],
@@ -65,7 +67,7 @@ def heston_calibration(
         "market_prices": _as_list(result["market_prices"]),
         "model_prices": _as_list(result["model_prices"]),
         "abs_errors": _as_list(result["abs_errors"]),
-        "rmse": result["rmse"]
+        "rmse": result["rmse"],
     }
 
 
@@ -82,17 +84,19 @@ def get_calibration_run(run_id: int, db: Session = Depends(get_db)) -> Calibrati
         "inputs": run.inputs,
         "params": run.params,
         "rmse": run.rmse,
-        "created_at": run.created_at.isoformat(),
+        "created_at": run.created_at,
     }
 
 
 @router.get("/runs", response_model=CalibrationRunListResponse)
 def get_calibration_runs(
     limit: int = Query(default=20, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     ) -> CalibrationRunListResponse:
     repo = CalibrationRepository(db)
-    runs = repo.list_recent_runs(limit=limit)
+    runs = repo.list_recent_runs(limit=limit, offset=offset)
+    total = repo.count_runs()
     
     return {
         "runs": [
@@ -102,8 +106,22 @@ def get_calibration_runs(
                 "inputs": run.inputs,
                 "params": run.params,
                 "rmse": run.rmse,
-                "created_at": run.created_at.isoformat(),                
+                "created_at": run.created_at,                
             }
             for run in runs
-        ]
+        ],
+        "pagination": PaginationMeta(limit=limit, offset=offset, total=total)
     }
+
+
+@router.delete("/runs/{run_id}", status_code=Status.HTTP_204_NO_CONTENT)
+def delete_calibration_run(run_id: int, db: Session = Depends(get_db)) -> Response:
+    repo = CalibrationRepository(db)
+    deleted = repo.delete_run(run_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Calibration run {run_id} not found"
+        )
+    
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
