@@ -1,23 +1,36 @@
-from app.schemas.pricing import HestonParams, Diagnostics, PricingResponse
+from dataclasses import dataclass
 
-def to_response_payload(
-    params: HestonParams,
-    summary: dict,
-    diagnostics: dict | None = None
-    ) -> PricingResponse:
+PENALTY = 1e6
+EPS = 1e-12
 
-    return PricingResponse(
-        params=HestonParams(
-            v0=params.v0,
-            r=params.r,
-            kappa=params.kappa,
-            theta=params.theta,
-            rho=params.rho,
-            xi=params.xi
-        ),
-        market_prices=summary.get("market_prices", []),
-        model_prices=summary("model_prices", []),
-        abs_errors=summary("abs_errors", []),
-        rmse=summary("rmse", 0.0),
-        diagnostics=Diagnostics(calibration_logs=diagnostics or {}) 
-    )
+@dataclass
+class ConstraintResult:
+    is_valid: bool
+    penalty: float
+    reasons: list[str]
+
+
+def evaluate_heston_constraints(
+        v0: float,
+        kappa: float,
+        theta: float,
+        rho: float,
+        xi: float
+    ) -> "ConstraintResult":
+        reasons: list[str] = []
+        penalty = 0.0 
+
+        if v0 <= 0:
+            reasons.append("v0 must be strictly positive")
+            penalty += PENALTY
+
+        if  not (-1.0 <= rho <= 1.0):
+            reasons.append("rho out of bound")
+            penalty += PENALTY
+            
+        if 2 * kappa * theta <= xi**2 + EPS:
+            reasons.append("feller condition violated")
+            penalty += PENALTY
+        
+        return ConstraintResult(is_valid= not reasons, penalty=penalty, reasons=reasons)
+        
