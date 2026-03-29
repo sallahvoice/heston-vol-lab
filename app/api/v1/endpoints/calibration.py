@@ -124,4 +124,4 @@ def delete_calibration_run(run_id: int, db: Session = Depends(get_db)) -> Respon
             detail=f"Calibration run {run_id} not found"
         )
     
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(status_code=Status.HTTP_204_NO_CONTENT)

@@ -13,7 +13,7 @@ from app.models import calibration, simulation
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_section_option("alembic", "sqlachemy.url", str(settings.db_url))
+config.set_section_option("alembic", "sqlalchemy.url", str(settings.db_url))
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:

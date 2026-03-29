@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 import redis
+from functools import lru_cache
 from dotenv import load_dotenv
 
 from app.core.logger import get_logger
@@ -18,16 +19,24 @@ def _build_client() -> redis.Redis | None:
             host=os.getenv("REDIS_HOST", "localhost"),
             port=int(os.getenv("REDIS_PORT", "6379")),
             db=int(os.getenv("REDIS_DB", "0")),
-            password=os.getenv("REDIS_PASSWORD", None)
+            password=os.getenv("REDIS_PASSWORD", None),
+            socket_timeout=5,
+            socket_connect_timeout=5,
+            decode_responses=True
         )
         client.ping()
         logger.info("Redis connection established")
 
+        return client
+
     except redis.exceptions.RedisError as e:
         logger.error("Redis connection failed: %s", e)
         return None
+    
 
-redis_client = _build_client()
+@lru_cache(maxsize=1)
+def get_redis_client():
+    return _build_client()
 
 
 def build_cache_key(namespace: str, payload: dict[str, Any]) -> str:
@@ -37,7 +46,7 @@ def build_cache_key(namespace: str, payload: dict[str, Any]) -> str:
 
 
 def get_json(key: str) -> dict[str, Any] | None:
-    if redis_client is none:
+    if redis_client is None:
         return None
     try:
         raw = redis_client.get(key)

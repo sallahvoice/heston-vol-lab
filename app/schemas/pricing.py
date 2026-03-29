@@ -47,5 +47,5 @@ class CarrMadanRequest(BaseModel):
 class CarrMadanResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    log_strikes : List[float] = Field(alias="k")
-    C_k : List[float] = Field(alias="C_k")
+    log_strikes : List[float]
+    call_prices : List[float]

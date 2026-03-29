@@ -1,5 +1,4 @@
 import json
-from numpy import np
 from fastapi import APIRouter, Query
 
 from app.utils.misc import _as_list
@@ -67,7 +66,7 @@ def monte_carlo_put_pricing(
             return cached
 
 
-    price = monte_carlo_european_call(
+    price = monte_carlo_european_put(
         req.St,
         req.K,
         req.r,

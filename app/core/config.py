@@ -28,6 +28,5 @@ class Settings(BaseSettings):
     redis_password: Optional[SecretStr] = Field(default=None, alias="REDIS_PASSWORD")
 
     api_key: Optional[SecretStr] = Field(default=None, alias="API_KEY")
-    #check .env 
 
 settings = Settings()
