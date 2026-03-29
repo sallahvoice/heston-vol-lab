@@ -2,7 +2,8 @@ import numpy as np
 from scipy.optimize import minimize
 
 from app.services.fft_pricing import HestonParams, carr_madan_fft_price
-from app.services.heston import check_feller_condition
+from app.services.calibration_constraints import evaluate_heston_constraints
+from app.utils.decorators import log_optimizer, timing
 
 FELLER_PENALTY = 1e6
 
@@ -82,8 +83,14 @@ def heston_objective(
 
     err = float(np.mean((market_prices - model_prices) ** 2))
 
-    if not check_feller_condition(theta=params.theta, kappa=params.kappa, xi=params.xi):
-        err += FELLER_PENALTY
+    constraints = evaluate_heston_constraints(
+        v0=params.v0,
+        kappa=params.kappa,
+        theta=params.theta,
+        rho=params.rho,
+        xi=params.xi
+    )
+    err += constraints.penalty
 
     return err
 
@@ -130,17 +137,27 @@ def calibrate_heston_objective(
         dtype=float,
     )
 
-    result = minimize(
-        objective_wrapper,
-        x0,
-        method=method,
-        bounds=bounds,
-        tol=tol,
-        options=options,
-        )
+    @log_optimizer
+    def _run_optimization():
+        return minimize(
+            objective_wrapper,
+            x0,
+            method=method,
+            bounds=bounds,
+            tol=tol,
+            options=options,
+            )
+
+    result = _run_optimization()
 
     calibrated_params = HestonParams(*result.x)
-    return calibrated_params, float(result.fun), bool(result.success), str(result.message)
+
+    return (
+        calibrated_params,
+        float(result.fun),
+        bool(result.success),
+        str(result.message),
+    )
 
 
 def calibration_error_summary(
@@ -177,6 +194,7 @@ def calibration_error_summary(
     }
 
 
+@timing
 def calibrate_heston(
     initial_guess: HestonParams,
     K: np.ndarray,
@@ -205,7 +223,7 @@ def calibrate_heston(
         method=method,
         tol=tol,
         options=options,
-    ) 
+    )
     
     summary = calibration_error_summary(
         calibrated_params=params,
