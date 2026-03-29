@@ -1,4 +1,5 @@
 import json
+from numpy import np
 from fastapi import APIRouter, Query
 
 from app.utils.misc import _as_list
@@ -26,9 +27,9 @@ def monte_carlo_call_pricing(
     req: MonteCarloRequest,
     use_cache: bool = Query(default=True),
     cache_ttl_seconds: int = Query(default=300, ge=1, le=86400),
-    ) -> MonteCarloResponse:
+) -> MonteCarloResponse:
     payload = _stable_payload(req)
-    cache_key = build_cache_key("pricing:monte_carlo", payload)
+    cache_key = build_cache_key("pricing:monte_carlo:call", payload)
 
     if use_cache:
         cached = get_json(cache_key)
@@ -37,7 +38,7 @@ def monte_carlo_call_pricing(
 
 
     price = monte_carlo_european_call(
-        req.S0,
+        req.St,
         req.K,
         req.r,
         req.T
@@ -52,12 +53,13 @@ def monte_carlo_call_pricing(
 
 
 @router.post("/monte_carlo_put", response_model=MonteCarloResponse)
-def monte_carlo_put_pricing(req: MonteCarloRequest,
-use_cache: bool = Query(default=True),
-cache_ttl_seconds: int = Query(default=300, ge=1, le=86400),
+def monte_carlo_put_pricing(
+    req: MonteCarloRequest,
+    use_cache: bool = Query(default=True),
+    cache_ttl_seconds: int = Query(default=300, ge=1, le=86400),
 ) -> MonteCarloResponse:
     payload = _stable_payload(req)
-    cache_key = build_cache_key("pricing:monte_carlo", payload)
+    cache_key = build_cache_key("pricing:monte_carlo:put", payload)
 
     if use_cache:
         cached = get_json(cache_key)
@@ -66,7 +68,7 @@ cache_ttl_seconds: int = Query(default=300, ge=1, le=86400),
 
 
     price = monte_carlo_european_call(
-        req.S0,
+        req.St,
         req.K,
         req.r,
         req.T
