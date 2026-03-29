@@ -118,6 +118,6 @@ def carr_madan_fft_price(
     fft_input = integrand * simpson_weight * shift
     fft_values = np.fft.fft(fft_input) * eta
 
-    C_k = (np.exp(-alpha * k) / np.pi) * np.real(fft_values)
+    c_k = (np.exp(-alpha * k) / np.pi) * np.real(fft_values)
 
-    return k, C_k #prices for log(k), make sure to interpolate prices.
+    return k, c_k

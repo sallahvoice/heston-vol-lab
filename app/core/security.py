@@ -13,10 +13,10 @@ def validate_api_key(x_api_key: str | None = Header(default=None)) -> str:
     """
 
     expected_api_key = os.getenv("API_KEY")
-    ENV = os.getenv("ENVIRONMENT", "dev")
+    environment = os.getenv("ENVIRONMENT", "development")
 
     if not expected_api_key:
-        if ENV == "prod":
+        if environment == "prod":
             raise RuntimeError("API_KEY not set")
         return "ok"
 

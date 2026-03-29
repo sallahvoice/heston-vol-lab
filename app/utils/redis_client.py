@@ -22,7 +22,7 @@ def _build_client() -> redis.Redis | None:
             password=os.getenv("REDIS_PASSWORD", None),
             socket_timeout=5,
             socket_connect_timeout=5,
-            decode_responses=True
+            decode_responses=True,
         )
         client.ping()
         logger.info("Redis connection established")
