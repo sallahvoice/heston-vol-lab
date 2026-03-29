@@ -17,8 +17,8 @@ from app.schemas.pricing import (
 router = APIRouter(prefix="/pricing", tags=["pricing"])
 
 
-def _stable_payload(model) -> str:
-    return json.dumps(model.model_dump(mode="json"), sort_keys=True)
+def _stable_payload(model) -> dict[str, Any]:
+    return model.model_dump(mode="json")
 
 
 @router.post("/monte_carlo_call", response_model=MonteCarloResponse)

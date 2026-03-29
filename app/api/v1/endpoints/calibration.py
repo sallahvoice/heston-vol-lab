@@ -68,6 +68,9 @@ def heston_calibration(
         "model_prices": _as_list(result["model_prices"]),
         "abs_errors": _as_list(result["abs_errors"]),
         "rmse": result["rmse"],
+        "loss": result["loss"],
+        "success": result["success"],
+        "message": result["message"],
     }
 
 

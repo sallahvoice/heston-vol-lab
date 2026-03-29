@@ -249,4 +249,7 @@ def calibrate_heston(
         "model_prices": summary["model_prices"],
         "abs_errors": summary["abs_errors"],
         "rmse": summary["rmse"],
+        "loss": loss,
+        "sucess": success,
+        "message": message, 
     }
