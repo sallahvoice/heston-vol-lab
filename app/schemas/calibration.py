@@ -37,6 +37,9 @@ class HestonCalibrationResponse(BaseModel):
     model_prices: list[float]
     abs_errors: list[float]
     rmse: float
+    loss: float
+    success: bool
+    message: str
 
 
 class CalibrationRunResponse(BaseModel):

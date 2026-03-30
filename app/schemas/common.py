@@ -15,7 +15,10 @@ class PaginationMeta(BaseModel):
 
 
 class ErrorResponse(BaseModel):
+    code: int
     detail: str
+    request_path: str
+    timestamp: datetime
 
 
 class TimeStampedResponse(BaseModel):
