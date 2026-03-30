@@ -47,23 +47,31 @@ def _model_prices_for_quotes(
     alpha: float,
     N: int,
     B: float,
+    surface_cache: dict[tuple[tuple[float, ...], float, float, int, float], tuple[np.ndarray, np.ndarray]] | None = None,
 ) -> np.ndarray:
 
     model_prices = np.empty_like(K, dtype=float)
+    params_key = (params.v0, params.r, params.kappa, params.theta, params.rho, params.xi)
 
     unique_T = np.unique(T)
     for t in unique_T:
         idx = T == t
-        k_grid, c_grid = carr_madan_fft_price(
-            params=params,
-            T=float(t),
-            S0=S0,
-            alpha=alpha,
-            N=N,
-            B=B,
-        )
-        strike_grid = np.exp(k_grid)
-        model_prices[idx] = np.interp(K[idx], strike_grid, c_grid)
+        cache_key = (params_key, float(t), alpha, N, B)
+        if surface_cache is not None and cache_key in surface_cache:
+            k_grid, c_grid = surface_cache[cache_key]
+        else:
+            k_grid, c_grid = carr_madan_fft_price(
+                params=params,
+                T=float(t),
+                S0=S0,
+                alpha=alpha,
+                N=N,
+                B=B
+            )
+            if surface_cache is not None:
+                surface_cache[cache_key] = (k_grid, c_grid)
+            strike_grid = np.exp(k_grid)
+            model_prices[idx] = np.interp(K[idx], strike_grid, c_grid)
     
     return model_prices
 
@@ -77,9 +85,19 @@ def heston_objective(
     N: int,
     B: float,
     market_prices: np.ndarray,
+    surface_cache: dict[tuple[tuple[float, ...], float, float, int, float], tuple[np.ndarray, np.ndarray]] | None = None,
 ) -> float:
 
-    model_prices = _model_prices_for_quotes(params, K, T, S0, alpha, N, B)
+    model_prices = _model_prices_for_quotes(
+        params,
+        K,
+        T,
+        S0,
+        alpha,
+        N,
+        B,
+        surface_cache=surface_cache,
+    )
 
     err = float(np.mean((market_prices - model_prices) ** 2))
 
@@ -108,6 +126,7 @@ def calibrate_heston_objective(
     method: str = "L-BFGS-B",
     tol: float = 1e-6,
     options: dict | None = None,
+    surface_cache: dict[tuple[tuple[float, ...], float, float, int, float], tuple[np.ndarray, np.ndarray]] | None = None,
 ) -> tuple[HestonParams, float, bool, str]:
 
     k_arr, T_arr, market_arr = _validate_and_broadcast_inputs(K, T, market_prices)
@@ -123,6 +142,7 @@ def calibrate_heston_objective(
             N,
             B,
             market_arr,
+            surface_cache=surface_cache,
         )
     
     x0 = np.array(
@@ -249,7 +269,7 @@ def calibrate_heston(
         "model_prices": summary["model_prices"],
         "abs_errors": summary["abs_errors"],
         "rmse": summary["rmse"],
-        "loss": loss,
-        "sucess": success,
-        "message": message, 
+        "loss": _loss,
+        "success": _success,
+        "message": _message, 
     }

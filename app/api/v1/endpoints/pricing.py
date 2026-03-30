@@ -1,4 +1,3 @@
-import json
 from fastapi import APIRouter, Query
 
 from app.utils.misc import _as_list
@@ -35,7 +34,6 @@ def monte_carlo_call_pricing(
         if cached is not None:
             return cached
 
-
     price = monte_carlo_european_call(
         req.St,
         req.K,
@@ -64,7 +62,6 @@ def monte_carlo_put_pricing(
         cached = get_json(cache_key)
         if cached is not None:
             return cached
-
 
     price = monte_carlo_european_put(
         req.St,
@@ -96,9 +93,9 @@ def carr_madan_pricing(
         if cached is not None:
             return cached
 
-    k, C_k = carr_madan_fft_price(req.params, req.T, req.S0, req.alpha, req.N, req.B)
+    k, c_k = carr_madan_fft_price(req.params, req.T, req.S0, req.alpha, req.N, req.B)
 
-    response = {"log_strikes": _as_list(k), "call_prices": _as_list(C_k)}
+    response = {"log_strikes": _as_list(k), "call_prices": _as_list(c_k)}
 
     if use_cache:
         set_json(cache_key, response, ttl_seconds=cache_ttl_seconds)

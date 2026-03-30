@@ -46,6 +46,7 @@ def build_cache_key(namespace: str, payload: dict[str, Any]) -> str:
 
 
 def get_json(key: str) -> dict[str, Any] | None:
+    redis_client = get_redis_client()
     if redis_client is None:
         return None
     try:
@@ -59,6 +60,7 @@ def get_json(key: str) -> dict[str, Any] | None:
 
 
 def set_json(key: str, value: dict[str, Any], ttl_seconds: int = 300) -> None:
+    redis_client = get_redis_client()
     if redis_client is None:
         return
     try:
