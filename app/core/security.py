@@ -1,6 +1,7 @@
 import os
 import hmac
 from fastapi import Header, HTTPException, status
+from app.core.config import settings
 
 API_KEY_HEADER = "X-API-Key"
 
@@ -12,8 +13,9 @@ def validate_api_key(x_api_key: str | None = Header(default=None)) -> str:
     - prod: no API_KEY → crash
     """
 
-    expected_api_key = os.getenv("API_KEY")
-    environment = os.getenv("ENVIRONMENT", "development")
+    configured_key = settings.api_key
+    expected_api_key = configured_key.get_secret_value() if configured_key else None
+    environment = settings.environment
 
     if not expected_api_key:
         if environment == "prod":
