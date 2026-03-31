@@ -6,7 +6,12 @@ from app.services.calibration_constraints import evaluate_heston_constraints
 from app.utils.decorators import log_optimizer, timing
 
 FELLER_PENALTY = 1e6
-
+DEFAULT_OPTIMIZER_OPTIONS = {
+    "maxiter": 300,
+    "maxfun": 5000,
+    "ftol": 1e-12,
+}
+OBJECTIVE_CACHE_DECIMAL = 10
 
 def _validate_and_broadcast_inputs(
     K: np.ndarray | list[float] | float,
@@ -51,7 +56,7 @@ def _model_prices_for_quotes(
 ) -> np.ndarray:
 
     model_prices = np.empty_like(K, dtype=float)
-    params_key = (params.v0, params.r, params.kappa, params.theta, params.rho, params.xi)
+    params_key = _params_cache_key(params)
 
     unique_T = np.unique(T)
     for t in unique_T:
@@ -70,8 +75,8 @@ def _model_prices_for_quotes(
             )
             if surface_cache is not None:
                 surface_cache[cache_key] = (k_grid, c_grid)
-            strike_grid = np.exp(k_grid)
-            model_prices[idx] = np.interp(K[idx], strike_grid, c_grid)
+        strike_grid = np.exp(k_grid)
+        model_prices[idx] = np.interp(K[idx], strike_grid, c_grid)
     
     return model_prices
 
@@ -113,6 +118,26 @@ def heston_objective(
     return err
 
 
+def _params_cache_key(
+    params: HestonParams,
+    decimals: int = OBJECTIVE_CACHE_DECIMAL,
+) -> tuple[float, ...]:
+    raw = np.asarray(
+        [params.v0, params.r, params.kappa, params.theta, params.rho, params.xi],
+        dtype=float
+    )
+
+    return tuple(np.round(raw, decimals))
+
+
+def _merge_optimizer_options(options: dict | None) -> dict:
+    merged = DEFAULT_OPTIMIZER_OPTIONS.copy()
+    if options:
+        merged.update(options)
+
+    return merged
+
+
 def calibrate_heston_objective(
     initial_guess: HestonParams,
     K: np.ndarray,
@@ -130,10 +155,15 @@ def calibrate_heston_objective(
 ) -> tuple[HestonParams, float, bool, str]:
 
     k_arr, T_arr, market_arr = _validate_and_broadcast_inputs(K, T, market_prices)
+    objective_cache: dict[tuple[float, ...], float] = {}
+    resolved_options = _merge_optimizer_options(options)
 
     def objective_wrapper(x: np.ndarray) -> float:
+        cache_key = tuple(np.round(x, OBJECTIVE_CACHE_DECIMAL))
+        if cache_key in objective_cache:
+            return objective_cache[cache_key]
         p = HestonParams(*x)
-        return heston_objective(
+        value = heston_objective(
             p,
             k_arr,
             T_arr,
@@ -144,6 +174,8 @@ def calibrate_heston_objective(
             market_arr,
             surface_cache=surface_cache,
         )
+        objective_cache[cache_key] = value
+        return value
     
     x0 = np.array(
         [
@@ -165,7 +197,7 @@ def calibrate_heston_objective(
             method=method,
             bounds=bounds,
             tol=tol,
-            options=options,
+            options=resolved_options,
             )
 
     result = _run_optimization()

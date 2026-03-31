@@ -67,3 +67,6 @@ def set_json(key: str, value: dict[str, Any], ttl_seconds: int = 300) -> None:
         redis_client.setex(key, ttl_seconds, json.dumps(value, default=str))
     except redis.exceptions.RedisError as e:
         logger.warning("Redis SET failed for key %s: %s", key, e)
+
+
+redis_client = get_redis_client()

@@ -5,3 +5,5 @@
 README.md
 __pycache__
 .pytest_cache
+app/log.log
+app/heston_lab.egg-info
