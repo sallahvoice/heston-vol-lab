@@ -1,0 +1,257 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\title{Service-Layer Core Formulas in \texttt{heston-vol-lab}}
+\author{Personal Math Notes}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This document is a \emph{personal} mathematical map of the project's service layer.  
+It focuses on core pricing/simulation/calibration formulas and omits side diagnostics and utility-only helpers.
+
+\tableofcontents
+
+\section{Notation and Model Parameters}
+\begin{itemize}[leftmargin=2em]
+    \item $S_t$: underlying asset price at time $t$.
+    \item $v_t$: instantaneous variance process (Heston variance state).
+    \item $W_t, W_t^{(1)}, W_t^{(2)}$: Brownian motions.
+    \item $\rho$: correlation between the two Heston Brownian drivers.
+    \item $r$: risk-free rate (used in pricing/discounting).
+    \item $\mu$: drift used in simulation routines.
+    \item $\kappa$: speed of mean reversion of variance.
+    \item $\theta$: long-run variance level.
+    \item $\xi$: volatility-of-variance (vol-of-vol).
+    \item $v_0, S_0$: initial variance and initial spot.
+    \item $T$: maturity horizon.
+    \item $K$: strike.
+\end{itemize}
+
+\section{Brownian Motion Building Blocks}
+
+\subsection{Time step and increments}
+For a grid of $n_{\text{steps}}$ points on $[0,T]$, the code uses
+\begin{equation}
+\Delta t = \frac{T}{n_{\text{steps}}-1}.
+\end{equation}
+Increments are sampled as
+\begin{equation}
+\Delta W_t \sim \mathcal{N}(0,\Delta t).
+\end{equation}
+
+\textbf{Meaning:} each increment has variance proportional to elapsed time, so cumulative paths converge to Brownian motion as grid is refined.
+
+\subsection{Path construction from increments}
+Given increment matrix $(\Delta W_t)$, paths are reconstructed via cumulative sums:
+\begin{equation}
+W_0 = 0, \qquad W_{t_j} = \sum_{m=0}^{j-1} \Delta W_{t_m}.
+\end{equation}
+
+\subsection{Correlated Brownian increments}
+To get two correlated drivers, the code builds
+\begin{equation}
+\Sigma =
+\begin{bmatrix}
+1 & \rho\\
+\rho & 1
+\end{bmatrix},
+\end{equation}
+computes Cholesky $L$ with $\Sigma = LL^\top$, samples iid normals $Z\in\mathbb{R}^2$, then sets
+\begin{equation}
+\Delta \bm{W} = L Z \sqrt{\Delta t}.
+\end{equation}
+This guarantees
+\begin{equation}
+\mathrm{Corr}(\Delta W^{(1)},\Delta W^{(2)}) = \rho.
+\end{equation}
+
+\section{GBM Service Formulas}
+
+\subsection{Exact GBM path solution used in simulation}
+The implemented closed-form path generation is
+\begin{equation}
+S_t = S_0\exp\!\left((\mu-\tfrac12\sigma^2)t + \sigma W_t\right).
+\end{equation}
+
+\textbf{Components:}
+\begin{itemize}[leftmargin=2em]
+    \item $(\mu-\frac12\sigma^2)t$: deterministic drift in log-space.
+    \item $\sigma W_t$: stochastic shock term.
+\end{itemize}
+
+\subsection{Euler GBM approximation}
+The Euler update in the code is
+\begin{equation}
+S_{t+\Delta t} = S_t + \mu S_t\Delta t + \sigma S_t\sqrt{\Delta t}\,Z_t,
+\qquad Z_t\sim\mathcal{N}(0,1).
+\end{equation}
+
+\subsection{Black--Scholes call (reference benchmark)}
+\begin{align}
+ d_1 &= \frac{\ln(S_0/K) + (r + \frac12\sigma^2)T}{\sigma\sqrt{T}},\\
+ d_2 &= d_1 - \sigma\sqrt{T},\\
+ C_{\text{BS}} &= S_0\Phi(d_1) - Ke^{-rT}\Phi(d_2).
+\end{align}
+
+\textbf{Why in project:} used as benchmark against Monte Carlo convergence behavior.
+
+\section{Monte Carlo Pricing Core}
+
+\subsection{Expectation estimator}
+For samples $X_1,\dots,X_N$ and payoff map $f$:
+\begin{equation}
+\widehat{\mathbb{E}}[f(X)] = \frac1N\sum_{i=1}^N f(X_i).
+\end{equation}
+
+\subsection{Discounting}
+For terminal payoff $\Pi_T$,
+\begin{equation}
+\Pi_0 = e^{-rT}\Pi_T.
+\end{equation}
+
+\subsection{European call/put estimators}
+If terminal samples are $S_T^{(i)}$:
+\begin{align}
+\widehat{C}_0 &= e^{-rT}\frac1N\sum_{i=1}^N \max(S_T^{(i)}-K,0),\\
+\widehat{P}_0 &= e^{-rT}\frac1N\sum_{i=1}^N \max(K-S_T^{(i)},0).
+\end{align}
+
+\subsection{Monte Carlo standard error and CI test}
+Given discounted payoff samples $Y_i$,
+\begin{equation}
+\widehat{\mathrm{SE}} = \frac{\widehat{\sigma}_Y}{\sqrt{N}}.
+\end{equation}
+With confidence level $CL$, and $z_{CL}=\Phi^{-1}(\frac{1+CL}{2})$, the code checks whether absolute pricing error satisfies
+\begin{equation}
+|\widehat{V}-V_{\text{ref}}| < z_{CL}\,\widehat{\mathrm{SE}}.
+\end{equation}
+
+\section{Heston Simulation Core}
+
+\subsection{Continuous-time Heston SDE system (conceptual target)}
+The simulation corresponds to the classic Heston dynamics
+\begin{align}
+ dS_t &= \mu S_t\,dt + \sqrt{v_t}S_t\,dW_t^{(1)},\\
+ dv_t &= \kappa(\theta-v_t)dt + \xi\sqrt{v_t}\,dW_t^{(2)},\\
+ d\langle W^{(1)},W^{(2)}\rangle_t &= \rho\,dt.
+\end{align}
+
+\subsection{Variance discretization: full truncation Euler}
+Code update:
+\begin{equation}
+ v_t^+ = \max(v_t,0),
+\end{equation}
+\begin{equation}
+ v_{t+\Delta t} = v_t + \kappa(\theta-v_t^+)\Delta t + \xi\sqrt{v_t^+}\,\Delta W_t^{(2)}.
+\end{equation}
+
+\textbf{Why this matters:}
+\begin{itemize}[leftmargin=2em]
+    \item prevents square-root of negative variance state,
+    \item keeps numerical scheme stable for rough parameter regions.
+\end{itemize}
+
+\subsection{Price path update under simulated variance}
+With $v_t^+=\max(v_t,0)$:
+\begin{equation}
+S_{t+\Delta t} = S_t\exp\!\left((\mu-\tfrac12 v_t^+)\Delta t + \sqrt{v_t^+}\,\Delta W_t^{(1)}\right).
+\end{equation}
+
+\subsection{Feller condition check}
+The project checks
+\begin{equation}
+2\kappa\theta > \xi^2.
+\end{equation}
+This is the strict Feller condition that helps keep CIR-type variance process strictly positive in continuous time.
+
+\section{Heston Fourier Pricing (Carr--Madan FFT) Core}
+
+\subsection{Heston characteristic function (implemented form)}
+Let $i=\sqrt{-1}$ and Fourier variable $u\in\mathbb{C}$. Define
+\begin{align}
+ b(u) &= \kappa - \rho\xi i u,\\
+ d(u) &= \sqrt{b(u)^2 + \xi^2(u^2+iu)},\\
+ g(u) &= \frac{b(u)-d(u)}{b(u)+d(u)},\\
+ e_d &= e^{-d(u)T}.
+\end{align}
+Then
+\begin{align}
+ C(u) &= riuT + \frac{\kappa\theta}{\xi^2}\left[(b-d)T -2\ln\left(\frac{1-ge_d}{1-g}\right)\right],\\
+ D(u) &= \frac{b-d}{\xi^2}\left(\frac{1-e_d}{1-ge_d}\right),\\
+ \phi(u) &= \exp\!\left(C(u)+D(u)v_0 + iu\ln S_0\right).
+\end{align}
+
+\textbf{Interpretation:} $\phi(u)$ is the characteristic function of $\ln S_T$ under model parameters, and is the analytic gateway to fast option pricing.
+
+\subsection{Carr--Madan damped integrand}
+With damping $\alpha>0$:
+\begin{equation}
+\psi(u)=\frac{\phi\big(u-i(\alpha+1)\big)}{\alpha^2+\alpha-u^2+i(2\alpha+1)u}.
+\end{equation}
+Damping makes the transformed call payoff square-integrable for FFT.
+
+\subsection{FFT grid construction}
+For truncation parameter $B$ and size $N$:
+\begin{align}
+\eta &= \frac{B}{N}, \qquad u_j=j\eta,\\
+\lambda &= \frac{2\pi}{N\eta},\\
+ b &= \frac{N\lambda}{2},\\
+ k_m &= -b + m\lambda.
+\end{align}
+Here $k=\ln K$ is log-strike grid.
+
+\subsection{Discrete FFT pricing map}
+Using Simpson-type weights $w_j$, phase shift $e^{iu_j b}$, and FFT output,
+\begin{align}
+\text{FFTInput}_j &= \psi(u_j)\,w_j\,e^{iu_j b},\\
+\text{FFTValues} &= \eta\,\mathrm{FFT}(\text{FFTInput}),\\
+C(k_m) &= \frac{e^{-\alpha k_m}}{\pi}\,\Re\!\left(\text{FFTValues}_m\right).
+\end{align}
+The code then maps from $k_m$ to strike via $K_m=e^{k_m}$ and interpolates model prices at required market strikes.
+
+\section{Calibration Objective Core}
+
+\subsection{Quote-wise model pricing via interpolation}
+For each maturity slice $T$, FFT gives a strike grid and call grid:
+\begin{equation}
+\{(K_m,C^{\text{model}}(K_m,T))\}_{m=1}^N.
+\end{equation}
+For observed strikes $K_i$ at the same maturity, model prices are linearly interpolated.
+
+\subsection{MSE loss with constraint penalties}
+Main objective minimized by optimizer:
+\begin{equation}
+\mathcal{L}(\Theta) = \frac{1}{n}\sum_{i=1}^n\Big(C_i^{\text{mkt}}-C_i^{\text{model}}(\Theta)\Big)^2 + \text{Penalty}(\Theta),
+\end{equation}
+where $\Theta=(v_0,r,\kappa,\theta,\rho,\xi)$.
+
+Constraint penalty is additive (fixed amount per violation):
+\begin{itemize}[leftmargin=2em]
+    \item $v_0>0$,
+    \item $-1\le \rho\le 1$,
+    \item $2\kappa\theta > \xi^2 + \varepsilon$ (numerical Feller variant).
+\end{itemize}
+
+\subsection{Post-calibration error summary}
+The reported aggregate metric is RMSE on absolute errors:
+\begin{align}
+ e_i &= \left|C_i^{\text{model}}-C_i^{\text{mkt}}\right|,\\
+ \mathrm{RMSE} &= \sqrt{\frac{1}{n}\sum_{i=1}^n e_i^2}.
+\end{align}
+
+\section*{What was intentionally excluded (``side formulas'')}
+Not expanded in detail here:
+\begin{itemize}[leftmargin=2em]
+    \item cache key rounding, logging/timing wrappers,
+    \item reporting-only heuristics like $1/\sqrt{N}$ proxy convergence column,
+    \item API/repository/validation plumbing equations that do not change pricing math.
+\end{itemize}
+
+\end{document}
