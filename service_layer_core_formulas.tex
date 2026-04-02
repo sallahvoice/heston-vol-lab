@@ -28,9 +28,10 @@ It focuses on core pricing/simulation/calibration formulas and omits side diagno
     \item $\mu$: drift used in simulation routines.
     \item $\kappa$: speed of mean reversion of variance.
     \item $\theta$: long-run variance level.
-    \item $\xi$: volatility-of-variance (vol-of-vol).
+    \item $\xi$: volatility-of-variance (vol-of-vol, often denoted $\sigma_v$ in literature).
+    \item $\lambda$: variance risk premium (theory extension from calibration notes).
     \item $v_0, S_0$: initial variance and initial spot.
-    \item $T$: maturity horizon.
+    \item $T$: maturity horizon; $\tau=T-t$ is time-to-maturity.
     \item $K$: strike.
 \end{itemize}
 
@@ -80,12 +81,6 @@ The implemented closed-form path generation is
 S_t = S_0\exp\!\left((\mu-\tfrac12\sigma^2)t + \sigma W_t\right).
 \end{equation}
 
-\textbf{Components:}
-\begin{itemize}[leftmargin=2em]
-    \item $(\mu-\frac12\sigma^2)t$: deterministic drift in log-space.
-    \item $\sigma W_t$: stochastic shock term.
-\end{itemize}
-
 \subsection{Euler GBM approximation}
 The Euler update in the code is
 \begin{equation}
@@ -99,8 +94,6 @@ S_{t+\Delta t} = S_t + \mu S_t\Delta t + \sigma S_t\sqrt{\Delta t}\,Z_t,
  d_2 &= d_1 - \sigma\sqrt{T},\\
  C_{\text{BS}} &= S_0\Phi(d_1) - Ke^{-rT}\Phi(d_2).
 \end{align}
-
-\textbf{Why in project:} used as benchmark against Monte Carlo convergence behavior.
 
 \section{Monte Carlo Pricing Core}
 
@@ -135,8 +128,7 @@ With confidence level $CL$, and $z_{CL}=\Phi^{-1}(\frac{1+CL}{2})$, the code che
 
 \section{Heston Simulation Core}
 
-\subsection{Continuous-time Heston SDE system (conceptual target)}
-The simulation corresponds to the classic Heston dynamics
+\subsection{Continuous-time Heston SDE system (project simulation form)}
 \begin{align}
  dS_t &= \mu S_t\,dt + \sqrt{v_t}S_t\,dW_t^{(1)},\\
  dv_t &= \kappa(\theta-v_t)dt + \xi\sqrt{v_t}\,dW_t^{(2)},\\
@@ -144,7 +136,6 @@ The simulation corresponds to the classic Heston dynamics
 \end{align}
 
 \subsection{Variance discretization: full truncation Euler}
-Code update:
 \begin{equation}
  v_t^+ = \max(v_t,0),
 \end{equation}
@@ -152,24 +143,15 @@ Code update:
  v_{t+\Delta t} = v_t + \kappa(\theta-v_t^+)\Delta t + \xi\sqrt{v_t^+}\,\Delta W_t^{(2)}.
 \end{equation}
 
-\textbf{Why this matters:}
-\begin{itemize}[leftmargin=2em]
-    \item prevents square-root of negative variance state,
-    \item keeps numerical scheme stable for rough parameter regions.
-\end{itemize}
-
 \subsection{Price path update under simulated variance}
-With $v_t^+=\max(v_t,0)$:
 \begin{equation}
 S_{t+\Delta t} = S_t\exp\!\left((\mu-\tfrac12 v_t^+)\Delta t + \sqrt{v_t^+}\,\Delta W_t^{(1)}\right).
 \end{equation}
 
 \subsection{Feller condition check}
-The project checks
 \begin{equation}
 2\kappa\theta > \xi^2.
 \end{equation}
-This is the strict Feller condition that helps keep CIR-type variance process strictly positive in continuous time.
 
 \section{Heston Fourier Pricing (Carr--Madan FFT) Core}
 
@@ -188,70 +170,136 @@ Then
  \phi(u) &= \exp\!\left(C(u)+D(u)v_0 + iu\ln S_0\right).
 \end{align}
 
-\textbf{Interpretation:} $\phi(u)$ is the characteristic function of $\ln S_T$ under model parameters, and is the analytic gateway to fast option pricing.
-
 \subsection{Carr--Madan damped integrand}
 With damping $\alpha>0$:
 \begin{equation}
 \psi(u)=\frac{\phi\big(u-i(\alpha+1)\big)}{\alpha^2+\alpha-u^2+i(2\alpha+1)u}.
 \end{equation}
-Damping makes the transformed call payoff square-integrable for FFT.
 
 \subsection{FFT grid construction}
-For truncation parameter $B$ and size $N$:
 \begin{align}
 \eta &= \frac{B}{N}, \qquad u_j=j\eta,\\
 \lambda &= \frac{2\pi}{N\eta},\\
  b &= \frac{N\lambda}{2},\\
  k_m &= -b + m\lambda.
 \end{align}
-Here $k=\ln K$ is log-strike grid.
 
 \subsection{Discrete FFT pricing map}
-Using Simpson-type weights $w_j$, phase shift $e^{iu_j b}$, and FFT output,
 \begin{align}
 \text{FFTInput}_j &= \psi(u_j)\,w_j\,e^{iu_j b},\\
 \text{FFTValues} &= \eta\,\mathrm{FFT}(\text{FFTInput}),\\
 C(k_m) &= \frac{e^{-\alpha k_m}}{\pi}\,\Re\!\left(\text{FFTValues}_m\right).
 \end{align}
-The code then maps from $k_m$ to strike via $K_m=e^{k_m}$ and interpolates model prices at required market strikes.
+with strike mapping $K_m=e^{k_m}$ and interpolation to observed strikes.
 
 \section{Calibration Objective Core}
 
 \subsection{Quote-wise model pricing via interpolation}
-For each maturity slice $T$, FFT gives a strike grid and call grid:
+For each maturity slice $T$, FFT gives
 \begin{equation}
-\{(K_m,C^{\text{model}}(K_m,T))\}_{m=1}^N.
+\{(K_m,C^{\text{model}}(K_m,T))\}_{m=1}^N,
 \end{equation}
-For observed strikes $K_i$ at the same maturity, model prices are linearly interpolated.
+and market strikes are priced by interpolation.
 
 \subsection{MSE loss with constraint penalties}
-Main objective minimized by optimizer:
 \begin{equation}
 \mathcal{L}(\Theta) = \frac{1}{n}\sum_{i=1}^n\Big(C_i^{\text{mkt}}-C_i^{\text{model}}(\Theta)\Big)^2 + \text{Penalty}(\Theta),
 \end{equation}
-where $\Theta=(v_0,r,\kappa,\theta,\rho,\xi)$.
+where in-project $\Theta=(v_0,r,\kappa,\theta,\rho,\xi)$.
 
-Constraint penalty is additive (fixed amount per violation):
+Constraint conditions:
 \begin{itemize}[leftmargin=2em]
     \item $v_0>0$,
     \item $-1\le \rho\le 1$,
-    \item $2\kappa\theta > \xi^2 + \varepsilon$ (numerical Feller variant).
+    \item $2\kappa\theta > \xi^2 + \varepsilon$.
 \end{itemize}
 
 \subsection{Post-calibration error summary}
-The reported aggregate metric is RMSE on absolute errors:
 \begin{align}
  e_i &= \left|C_i^{\text{model}}-C_i^{\text{mkt}}\right|,\\
  \mathrm{RMSE} &= \sqrt{\frac{1}{n}\sum_{i=1}^n e_i^2}.
 \end{align}
 
-\section*{What was intentionally excluded (``side formulas'')}
-Not expanded in detail here:
+\section{Incorporated Theory Notes from Your Notebook (Extended Context)}
+
+\subsection{Real-world ($\mathbb{P}$) and risk-neutral ($\mathbb{Q}$) dynamics}
+Your notebook content is incorporated here as an extended theory bridge:
+\begin{align}
+ dS_t &= \mu^{\mathbb{P}} S_t dt + \sqrt{v_t}S_t dW_{1,t}^{\mathbb{P}},\\
+ dv_t &= \kappa(\theta-v_t)dt + \sigma_v\sqrt{v_t}dW_{2,t}^{\mathbb{P}},\\
+ d\langle W_1^{\mathbb{P}},W_2^{\mathbb{P}}\rangle_t &= \rho\,dt.
+\end{align}
+Under one common variance-risk-premium parameterization,
+\begin{align}
+ dW_{S,t}^{\mathbb{Q}} &= dW_{S,t}^{\mathbb{P}} + \alpha_S dt, \qquad \alpha_S = \frac{\mu^{\mathbb{P}}-r}{\sqrt{v_t}},\\
+ dW_{v,t}^{\mathbb{Q}} &= dW_{v,t}^{\mathbb{P}} + \alpha_v dt, \qquad \alpha_v = \frac{\lambda}{\sigma_v}\sqrt{v_t}.
+\end{align}
+Then a common transformed form is
+\begin{align}
+ dS_t &= rS_tdt + \sqrt{v_t}S_t dW_{1,t}^{\mathbb{Q}},\\
+ dv_t &= \kappa^{\mathbb{Q}}(\theta^{\mathbb{Q}}-v_t)dt + \sigma_v\sqrt{v_t}dW_{2,t}^{\mathbb{Q}},
+\end{align}
+with
+\begin{equation}
+\kappa^{\mathbb{Q}}=\kappa+\lambda,
+\qquad
+\theta^{\mathbb{Q}}=\frac{\kappa\theta}{\kappa+\lambda},
+\qquad
+\rho^{\mathbb{Q}}=\rho.
+\end{equation}
+
+\subsection{Heston PDE representation (for conceptual completeness)}
+The notebook includes the two-factor pricing PDE form:
+\begin{equation}
+\frac{\partial C}{\partial t}
++\frac12 S^2v\frac{\partial^2 C}{\partial S^2}
++rS\frac{\partial C}{\partial S}
+-rC
++\big(\kappa(\theta-v)-\lambda v\big)\frac{\partial C}{\partial v}
++\frac12\sigma_v^2v\frac{\partial^2 C}{\partial v^2}
++\rho\sigma_vSv\frac{\partial^2 C}{\partial S\partial v}=0.
+\end{equation}
+
+\subsection{Semi-closed pricing decomposition with probabilities $P_1,P_2$}
+\begin{equation}
+C(S_0,K,v_0,\tau)=S_0P_1-Ke^{-r\tau}P_2,
+\end{equation}
+with
+\begin{equation}
+P_j=\frac12+\frac1\pi\int_0^{\infty}\Re\left[\frac{e^{-i\phi\ln K}\varphi_j(\phi)}{i\phi}\right]d\phi,
+\qquad j\in\{1,2\}.
+\end{equation}
+
+\subsection{Single-integral representation used in your notebook notes}
+The notebook also rewrites pricing as
+\begin{equation}
+C(S_0,K,v_0,\tau)=\frac12\left(S_0-Ke^{-r\tau}\right)
++\frac1\pi\int_0^{\infty}
+\Re\left[
+ e^{r\tau}\frac{\varphi(\phi-i)}{i\phi K^{i\phi}}
+-K\frac{\varphi(\phi)}{i\phi K^{i\phi}}
+\right]d\phi.
+\end{equation}
+This is mathematically consistent with the two-probability form and is useful for direct quadrature implementations.
+
+\subsection{General weighted calibration objective from the notebook}
+For completeness relative to your notebook's calibration setup:
+\begin{equation}
+\mathrm{SqErr}(\Theta)=\sum_{i=1}^{N_K}\sum_{j=1}^{N_T}
+ w_{ij}\left(C^{\text{mkt}}_{ij}-C^{\text{SV}}_{ij}(\Theta)\right)^2
++\mathrm{Penalty}(\Theta,\Theta_0),
+\end{equation}
+\begin{equation}
+\hat{\Theta}=\arg\min_{\Theta\in U_\Theta}\mathrm{SqErr}(\Theta).
+\end{equation}
+Here $\Theta$ in notebook notation can be $(v_0,\kappa,\theta,\sigma_v,\rho,\lambda)$; in this project code it is $(v_0,r,\kappa,\theta,\rho,\xi)$.
+
+\section*{What is intentionally excluded as ``side'' in this document}
 \begin{itemize}[leftmargin=2em]
     \item cache key rounding, logging/timing wrappers,
-    \item reporting-only heuristics like $1/\sqrt{N}$ proxy convergence column,
-    \item API/repository/validation plumbing equations that do not change pricing math.
+    \item data-source API steps and plotting code,
+    \item package-install cells and environment-only setup,
+    \item reporting-only heuristics that do not change pricing equations.
 \end{itemize}
 
 \end{document}
