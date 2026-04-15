@@ -7,17 +7,19 @@ class BrownianRequest(BaseModel):
     T: float = Field(..., gt=0)
     seed: int | None = None
 
+
 class BrownianResponse(BaseModel):
-    W : list[list[float]]
+    W: list[list[float]]
     dW: list[list[float]]
 
 
 class CorrelatedBrownianRequest(BaseModel):
     rho: float = Field(..., ge=-1.0, le=1.0)
+    T: float = Field(..., gt=0)
     n_steps: int = Field(..., gt=1)
     n_paths: int = Field(..., gt=0)
-    T: float = Field(..., gt=0)
     seed: int | None = None
+
 
 class CorrelatedBrownianResponse(BaseModel):
     W1: list[list[float]]
@@ -29,20 +31,22 @@ class CorrelatedBrownianResponse(BaseModel):
 class GBMRequest(BaseModel):
     S0: float = Field(..., gt=0)
     mu: float = Field(...)
-    sigma : float = Field(..., ge=0)
+    sigma: float = Field(..., ge=0)
     T: float = Field(..., gt=0)
     n_steps: int = Field(..., gt=1)
     n_paths: int = Field(..., gt=0)
     seed: int | None = None
 
+
 class GBMResponse(BaseModel):
-    paths : list[list[float]]
+    paths: list[list[float]]
 
 
 class HestonRequest(BaseModel):
     S0: float = Field(..., gt=0)
     v0: float = Field(..., gt=0)
     rho: float = Field(..., ge=-1.0, le=1.0)
+    T: float = Field(..., gt=0)
     n_steps: int = Field(..., gt=1)
     n_paths: int = Field(..., gt=0)
     mu: float
@@ -51,6 +55,19 @@ class HestonRequest(BaseModel):
     xi: float = Field(..., ge=0)
     seed: int | None = None
 
+
 class HestonResponse(BaseModel):
     St: list[list[float]]
     vt: list[list[float]]
+
+
+class HestonSummaryPoint(BaseModel):
+    t: int
+    mean_price: float
+    p05_price: float
+    p95_price: float
+    mean_variance: float
+
+
+class HestonSummaryResponse(BaseModel):
+    summary: list[HestonSummaryPoint]

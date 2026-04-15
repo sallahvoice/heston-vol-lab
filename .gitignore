@@ -2,7 +2,6 @@
 .env*
 !.env.example
 .venv
-README.md
 __pycache__
 .pytest_cache
 app/log.log
