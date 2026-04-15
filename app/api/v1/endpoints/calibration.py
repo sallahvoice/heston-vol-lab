@@ -79,7 +79,10 @@ def get_calibration_run(run_id: int, db: Session = Depends(get_db)) -> Calibrati
     repo = CalibrationRepository(db)
     run = repo.get_run_by_id(run_id)
     if run is None:
-        raise HTTPException(status_code=404, detail=f"Calibration run {run_id} not found")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Calibration run {run_id} not found"
+            )
     
     return {
         "id": run.id,

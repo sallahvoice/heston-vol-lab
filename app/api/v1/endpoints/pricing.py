@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Query
 
 from app.utils.misc import _as_list
